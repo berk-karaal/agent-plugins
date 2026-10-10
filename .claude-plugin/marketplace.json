@@ -7,6 +7,15 @@
       "name": "task-tracker",
       "source": "./plugins/task-tracker",
       "description": "Local-only persistent task tracking: .tasks/ docs + /task-tracker:* commands"
+    },
+    {
+      "name": "notification",
+      "source": {
+        "source": "git-subdir",
+        "url": "berk-karaal/claude-code-notification",
+        "path": "plugin"
+      },
+      "description": "Push notifications when Claude finishes a task, hits an error, or needs input"
     }
   ]
 }
