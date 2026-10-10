@@ -27,12 +27,6 @@ opencode plugin add 'github:berk-karaal/agent-plugins#main::path:plugins/<plugin
 npx skills add berk-karaal/agent-plugins
 ```
 
-## Adding a plugin
+## Contributing
 
-Create `plugins/<name>/`:
-
-- **Claude Code:** add `.claude-plugin/plugin.json` (`name`, `description`, `author`; no `version`) and an entry in `.claude-plugin/marketplace.json`.
-- **OpenCode V2:** add `package.json` (`private`, `"type": "module"`, `exports` → `./index.ts`, dependency `@opencode/plugin`) and an `index.ts` using `Plugin.define` that registers the plugin's `skills/*/SKILL.md` via `ctx.skill.transform`.
-- Put shared skills in `skills/<skill>/SKILL.md`.
-
-Run `npm run validate && npm run typecheck && npm test` before pushing.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
