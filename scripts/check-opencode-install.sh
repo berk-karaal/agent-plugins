@@ -34,7 +34,7 @@ for dir in "$ROOT"/plugins/*/; do
 
   mkdir -p "$SANDBOX/expected"
   git -C "$ROOT" archive "$SHA" "plugins/$name" | tar -x -C "$SANDBOX/expected"
-  if ! diff -r -x node_modules "$SANDBOX/expected/plugins/$name" "$installed" >"$SANDBOX/$name.diff"; then
+  if ! diff -r -x node_modules -x .gitignore -x .npmignore -x .npmrc "$SANDBOX/expected/plugins/$name" "$installed" >"$SANDBOX/$name.diff"; then
     echo "FAIL plugins/$name: installed files differ from the committed plugin folder"; sed 's/^/  /' "$SANDBOX/$name.diff"
     FAILS=$((FAILS + 1)); continue
   fi
