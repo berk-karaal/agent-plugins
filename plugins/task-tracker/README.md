@@ -14,6 +14,8 @@ or pushed** — they exist only for you and your coding agent, locally.
 
 ## Install in OpenCode V2
 
+Requires OpenCode V2 2.0.15 or newer (earlier versions can't install from a repo subdirectory).
+
 ```sh
 opencode plugin add 'github:berk-karaal/agent-plugins#main::path:plugins/task-tracker'
 ```

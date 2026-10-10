@@ -15,6 +15,8 @@ Berk Karaal's plugins for [Claude Code](https://code.claude.com) and [OpenCode V
 
 ## OpenCode V2
 
+Requires OpenCode V2 2.0.15 or newer (earlier versions can't install from a repo subdirectory).
+
 ```sh
 opencode plugin add 'github:berk-karaal/agent-plugins#main::path:plugins/<plugin>'
 ```
