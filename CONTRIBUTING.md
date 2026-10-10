@@ -290,8 +290,8 @@ OpenCode loads plugins with Bun anyway. Such a plugin:
 - is excluded from the npm workspaces in the root `package.json`
   (`"!plugins/<name>"` in `workspaces`), so npm never installs its dependencies;
 - is excluded from the root `tsconfig.json` (`exclude`), because it typechecks itself;
-- gets a job in `.github/workflows/ci.yml` that runs `bun install --frozen-lockfile` and
-  `bun run check` in its folder.
+- gets a step in `.github/workflows/ci.yml` that runs `bun run check` in its folder
+  (`working-directory: plugins/<name>`). Its dependencies come from the root `postinstall`.
 
 The root `postinstall` runs `bun install --frozen-lockfile` in every plugin that has a `bun.lock`,
 so `npm install` at the root sets everything up.
@@ -459,18 +459,17 @@ version, Claude Code stops delivering new commits until someone bumps it.
 ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main`, on every pull request, and **weekly**, on
-Mondays at 06:00 UTC. It has two jobs.
-
-The `check` job runs on `ubuntu-slim`:
+Mondays at 06:00 UTC. It has a single job on `ubuntu-slim`:
 
 1. sets up Node 24 and the latest Bun, then runs `npm ci`. Its `postinstall` also installs the
    Bun plugins.
 2. installs the **latest** Claude Code and OpenCode CLIs, and prints all tool versions.
-3. runs `npm run validate`, `npm run typecheck`, `npm test` and `npm run check:install`.
+3. runs `npm run validate`, `npm run typecheck`, `npm test`, each Bun plugin's `bun run check`,
+   and `npm run check:install`.
 
-The `opencode-notification` job runs that plugin's `bun run check` on Linux (`ubuntu-slim`) and
-macOS (`macos-latest`), with Bun pinned to 1.4.0, the plugin's declared minimum. Each new Bun
-plugin gets a job like it.
+There's no macOS runner. The plugins' tests pass the platform in as an input and stub every
+OS command, so the macOS code paths are already exercised on Linux, and a real `osascript` or
+`afplay` never runs in CI anyway.
 
 The CLIs aren't pinned on purpose. Users run the latest versions, so CI does too. The weekly
 run catches a new CLI release that breaks a plugin even when nothing was pushed. If a run fails

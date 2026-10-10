@@ -41,12 +41,15 @@ describe("documentation contracts", () => {
     expect(source).not.toContain("berk-karaal/opencode-notification")
   })
 
-  test("repo CI runs the complete check on Linux and macOS", async () => {
+  test("repo CI installs the plugin with its lockfile and runs the complete check", async () => {
     const workflow = await read("../../.github/workflows/ci.yml")
-    expect(workflow).toContain("macos-latest")
+    const rootPackage = JSON.parse(await read("../../package.json"))
     expect(workflow).toContain("oven-sh/setup-bun@v2")
+    expect(workflow).toContain("npm ci")
+    expect(rootPackage.scripts.postinstall).toContain("bun install --frozen-lockfile")
     expect(workflow).toContain("working-directory: plugins/opencode-notification")
-    expect(workflow).toContain("bun install --frozen-lockfile")
-    expect(workflow).toContain("bun run check")
+    expect(workflow).toContain("run: bun run check")
+    expect(workflow).not.toContain("macos-latest")
+    expect(workflow).not.toContain("bun-version")
   })
 })
