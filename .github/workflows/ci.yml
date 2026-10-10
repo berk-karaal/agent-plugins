@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
 
 jobs:
   check:
@@ -15,7 +17,9 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm i -g @anthropic-ai/claude-code@2.1.296
+      - run: npm i -g @anthropic-ai/claude-code @opencode/cli
+      - run: claude --version && opencode --version
       - run: npm run validate
       - run: npm run typecheck
       - run: npm test
+      - run: npm run check:install

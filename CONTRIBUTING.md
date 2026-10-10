@@ -11,7 +11,8 @@ This repo hosts plugins for **Claude Code** and **OpenCode V2**. Each plugin liv
 ```
 agent-plugins/
 ├─ .claude-plugin/marketplace.json   # Claude Code marketplace "berk-karaal": one entry per plugin
-├─ .github/workflows/ci.yml          # validate + typecheck + test on push / PR
+├─ .github/workflows/ci.yml          # all checks on push, PR and weekly
+├─ scripts/                          # repo checks for OpenCode plugins (load + install)
 ├─ package.json                      # private dev root: npm workspaces over plugins/*
 ├─ tsconfig.json                     # typechecks every plugins/*/index.ts
 └─ plugins/<name>/
@@ -47,7 +48,9 @@ client has and the other doesn't, such as Claude Code hooks or an OpenCode tool 
   - the folder name
   - `plugin.json` → `name`
   - the marketplace entry `name`
-- The OpenCode package name is `opencode-<name>`.
+- The OpenCode package name is `opencode-<name>`, and the `Plugin.define` `id` is `<name>`.
+- OpenCode commands are registered as `<name>:<command>`, one per `commands/<command>.md`,
+  matching what Claude Code shows. `npm run validate` checks this.
 - The skill folder name must equal the skill's `name` frontmatter: `skills/commit-message/SKILL.md` → `name: commit-message`.
 - Claude Code namespaces plugin skills and commands, so `skills/commit-message` in plugin `git-helpers` runs as `/git-helpers:commit-message`.
 
@@ -216,7 +219,8 @@ npm test
 ```
 
 Then test it in both clients (see [Testing locally](#testing-locally)) and commit, including
-`package-lock.json`.
+`package-lock.json`. After committing, run `npm run check:install`. It installs from the
+commit, not the working tree.
 
 ## Claude Code-only plugins
 
@@ -276,13 +280,39 @@ Keep the Markdown files the single source of truth, so the two clients never dri
 
 | Command | What it checks |
 |---|---|
-| `npm run validate` | `claude plugin validate` on the marketplace and on every plugin that has `.claude-plugin/plugin.json` |
+| `npm run validate` | `claude plugin validate` on the marketplace and every Claude Code plugin, then the OpenCode load check |
 | `npm run typecheck` | `tsc --noEmit` over every `plugins/*/index.ts` |
 | `npm test` | each plugin's own `test` script, if it has one |
+| `npm run check:install` | the OpenCode install check (needs the `opencode` CLI, tests `HEAD`) |
 
 `validate` always prints `No version specified` warnings. That is expected (see
 [Versioning](#versioning-and-releases)). The repo deliberately doesn't run validation with
 `--strict`.
+
+OpenCode has no validator of its own, so this repo has two checks for OpenCode plugins (every
+`plugins/*/` with a `package.json`):
+
+- **Load check** (`scripts/check-opencode.mjs`, part of `validate`) imports each `index.ts` and
+  runs `setup()` against a stand-in `ctx` that records what gets registered. It fails when:
+  - the default export isn't `Plugin.define({ id, setup })`, or `setup()` throws;
+  - the registered skills don't match the `skills/*/SKILL.md` folders, a skill's `path` doesn't
+    exist, or its content or description is empty;
+  - the registered commands don't match `commands/*.md` as `<id>:<command>`;
+  - `index.ts` imports a package that its own `package.json` doesn't list under `dependencies`.
+    The repo root's hoisted `node_modules` would otherwise hide this until a user installs.
+
+  It needs no model and no API key, and it gives the same result on every run. It can't see
+  runtime behaviour such as what a command does or whether a hook fires. Cover that with plugin
+  tests.
+- **Install check** (`scripts/check-opencode-install.sh`) runs, for each plugin,
+  `opencode plugin add 'git+file://<repo>#<HEAD sha>::path:plugins/<name>'`. That is the same
+  subdirectory install users run, but into a throwaway OpenCode home, so your own config is never
+  touched. It then fails unless:
+  - the installed files equal the committed plugin folder, which catches a `files` field or
+    anything else that strips the package;
+  - every dependency is installed.
+
+  It tests the last commit, not uncommitted changes.
 
 ### Plugin tests
 
@@ -366,14 +396,16 @@ version, Claude Code stops delivering new commits until someone bumps it.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on the `ubuntu-slim` runner on every push to `main` and on every
-pull request:
+`.github/workflows/ci.yml` runs on the `ubuntu-slim` runner on every push to `main`, on every
+pull request, and **weekly**, on Mondays at 06:00 UTC:
 
 1. `npm ci`
-2. installs a **pinned** Claude Code CLI. It provides `claude plugin validate`, and no login is
-   needed. Bump the version in `ci.yml` on purpose, and run `npm run validate` locally with the
-   new CLI first. A new CLI release can turn a warning into an error.
-3. `npm run validate`, `npm run typecheck`, `npm test`
+2. installs the **latest** Claude Code and OpenCode CLIs, and prints their versions
+3. `npm run validate`, `npm run typecheck`, `npm test`, `npm run check:install`
+
+The CLIs aren't pinned on purpose. Users run the latest versions, so CI does too. The weekly
+run catches a new CLI release that breaks a plugin even when nothing was pushed. If a run fails
+with no repo change, compare the printed CLI versions with the last green run.
 
 The smoke tests need `jq`. `ubuntu-slim` ships it, and locally the tests exit with `jq required`
 if it's missing.
@@ -387,7 +419,7 @@ when a change touches one plugin:
 feat(git-helpers): add commit-message skill
 fix(task-tracker): resolve linked task paths
 docs: update install instructions
-ci: pin Claude Code CLI
+ci: run checks weekly
 ```
 
 ## Gotchas
@@ -395,7 +427,7 @@ ci: pin Claude Code CLI
 - **OpenCode V2 older than 2.0.15** can't install from a repo subdirectory (`::path:`).
 - **No `../` in Claude Code plugins.** Everything a plugin uses must live inside its folder.
 - **No `files` in a plugin's `package.json`.** It would strip skills and scripts from the
-  OpenCode install.
+  OpenCode install. `npm run check:install` catches it.
 - **The OpenCode background service caches plugins.** After changing a plugin, restart the
   service or test with `--standalone`.
 - **Claude Code-only folders** (no `package.json`) are fine inside the npm workspaces glob.

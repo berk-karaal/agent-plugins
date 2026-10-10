@@ -4,9 +4,10 @@
   "type": "module",
   "workspaces": ["plugins/*"],
   "scripts": {
-    "validate": "claude plugin validate . && for d in plugins/*/; do if [ -f \"$d.claude-plugin/plugin.json\" ]; then claude plugin validate \"$d\" || exit 1; fi; done",
+    "validate": "claude plugin validate . && for d in plugins/*/; do if [ -f \"$d.claude-plugin/plugin.json\" ]; then claude plugin validate \"$d\" || exit 1; fi; done && node scripts/check-opencode.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm test --workspaces --if-present"
+    "test": "npm test --workspaces --if-present",
+    "check:install": "bash scripts/check-opencode-install.sh"
   },
   "devDependencies": {
     "@types/json-schema": "^7.0.15",
