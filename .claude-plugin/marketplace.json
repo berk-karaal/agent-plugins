@@ -1,0 +1,12 @@
+{
+  "name": "berk-karaal",
+  "description": "Berk Karaal's plugins for Claude Code and OpenCode V2.",
+  "owner": { "name": "Berk Karaal" },
+  "plugins": [
+    {
+      "name": "task-tracker",
+      "source": "./plugins/task-tracker",
+      "description": "Local-only persistent task tracking: .tasks/ docs + /task-tracker:* commands"
+    }
+  ]
+}
