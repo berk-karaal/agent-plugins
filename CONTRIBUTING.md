@@ -1,11 +1,396 @@
 # Contributing
 
-## Adding a plugin
+This repo hosts plugins for **Claude Code** and **OpenCode V2**. Each plugin lives in its own
+`plugins/<name>/` folder and installs on its own. A single folder can serve both clients:
 
-Create `plugins/<name>/`:
+- Claude Code reads it through the marketplace in `.claude-plugin/marketplace.json`.
+- OpenCode V2 installs it as an npm-style package straight from the git subdirectory.
 
-- **Claude Code:** add `.claude-plugin/plugin.json` (`name`, `description`, `author`; no `version`) and an entry in `.claude-plugin/marketplace.json`.
-- **OpenCode V2:** add `package.json` (`private`, `"type": "module"`, `exports` → `./index.ts`, dependency `@opencode/plugin`) and an `index.ts` using `Plugin.define` that registers the plugin's `skills/*/SKILL.md` via `ctx.skill.transform`.
-- Put shared skills in `skills/<skill>/SKILL.md`.
+## Repository layout
 
-Run `npm run validate && npm run typecheck && npm test` before pushing.
+```
+agent-plugins/
+├─ .claude-plugin/marketplace.json   # Claude Code marketplace "berk-karaal": one entry per plugin
+├─ .github/workflows/ci.yml          # validate + typecheck + test on push / PR
+├─ package.json                      # private dev root: npm workspaces over plugins/*
+├─ tsconfig.json                     # typechecks every plugins/*/index.ts
+└─ plugins/<name>/
+   ├─ .claude-plugin/plugin.json     # Claude Code manifest
+   ├─ skills/<skill>/SKILL.md        # skills, shared by both clients
+   ├─ commands/  agents/  hooks/     # Claude Code components (optional)
+   ├─ scripts/                       # helper scripts used by hooks/commands (optional)
+   ├─ package.json                   # OpenCode V2 package manifest
+   ├─ index.ts                       # OpenCode V2 entrypoint
+   ├─ test/                          # plugin tests (optional)
+   └─ README.md
+```
+
+The root `package.json` is for development only. Users never install it.
+
+## Which client a plugin supports
+
+The files a plugin folder contains decide which clients it supports. Nothing else needs configuring.
+
+| Plugin kind | `.claude-plugin/plugin.json` + marketplace entry | `package.json` + `index.ts` |
+|---|---|---|
+| Both clients | ✓ | ✓ |
+| Claude Code only | ✓ | – |
+| OpenCode V2 only | – | ✓ |
+
+Prefer **both** for plain skills. Make a plugin client-specific only when it relies on something one
+client has and the other doesn't, such as Claude Code hooks or an OpenCode tool hook.
+
+## Naming
+
+- The plugin name is the folder name, in kebab-case: `plugins/git-helpers/`.
+- That name appears in three places, which must all match:
+  - the folder name
+  - `plugin.json` → `name`
+  - the marketplace entry `name`
+- The OpenCode package name is `opencode-<name>`.
+- The skill folder name must equal the skill's `name` frontmatter: `skills/commit-message/SKILL.md` → `name: commit-message`.
+- Claude Code namespaces plugin skills and commands, so `skills/commit-message` in plugin `git-helpers` runs as `/git-helpers:commit-message`.
+
+## Adding a skill plugin (both clients)
+
+This is the common case: one or more skills, no hooks. The steps use `git-helpers` with one
+skill, `commit-message`.
+
+### 1. Write the skill
+
+`plugins/git-helpers/skills/commit-message/SKILL.md`:
+
+```markdown
+---
+name: commit-message
+description: Writes a Conventional Commits message for the staged diff. Use when the user asks for a commit message.
+---
+
+# Commit message
+
+…instructions…
+```
+
+Frontmatter rules:
+
+- Stick to the [Agent Skills](https://agentskills.io/specification) fields: `name`,
+  `description`, `license`, `compatibility`, `metadata` and `allowed-tools`.
+  - Claude Code-only extensions (`when_to_use`, `disable-model-invocation`, `argument-hint`, …)
+    are fine as long as OpenCode can ignore them without breaking the skill.
+- Keep `name` and `description` on **one line each**. The OpenCode loader below reads frontmatter
+  line by line. YAML block scalars (`description: >`) are not supported. Quoting the value is fine.
+- `description` is what the model uses to decide when to load the skill. Say what the skill does
+  **and** when to use it. Maximum 1024 characters.
+
+### 2. Add the Claude Code manifest
+
+`plugins/git-helpers/.claude-plugin/plugin.json`:
+
+```json
+{
+  "name": "git-helpers",
+  "description": "Git helper skills: commit messages, …",
+  "author": { "name": "Berk Karaal" }
+}
+```
+
+Do **not** add a `version` (see [Versioning](#versioning-and-releases)).
+
+Claude Code picks up `skills/`, `commands/`, `agents/` and `hooks/hooks.json` automatically from
+the plugin root. Every path must stay inside the plugin folder: `../` is rejected, so a plugin
+can't reuse files from a sibling plugin.
+
+### 3. Register it in the marketplace
+
+Add an entry to `.claude-plugin/marketplace.json`:
+
+```json
+{
+  "name": "git-helpers",
+  "source": "./plugins/git-helpers",
+  "description": "Git helper skills: commit messages, …"
+}
+```
+
+### 4. Add the OpenCode package
+
+`plugins/git-helpers/package.json`:
+
+```json
+{
+  "name": "opencode-git-helpers",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.ts" },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.15"
+  }
+}
+```
+
+- `private: true` prevents an accidental npm publish. Users install from git, not npm.
+- Don't add a `files` field. A git subdirectory install must contain the whole folder,
+  `skills/` included.
+- Put every runtime dependency in **this** `package.json`. The root `package.json` and its
+  hoisted dev dependencies are not part of the installed package.
+
+### 5. Add the OpenCode entrypoint
+
+`plugins/git-helpers/index.ts` registers every `skills/*/SKILL.md` with OpenCode. Copy it as is
+and change only the `id`:
+
+```ts
+import { readdir, readFile } from "node:fs/promises"
+import { fileURLToPath } from "node:url"
+import { Plugin, Skill } from "@opencode/plugin"
+
+const skillsDir = new URL("./skills/", import.meta.url)
+
+export function parseSkill(markdown: string) {
+  const match = markdown.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
+  const fields: Record<string, string> = {}
+  for (const line of (match?.[1] ?? "").split(/\r?\n/)) {
+    const field = line.match(/^([\w-]+):\s*(.*)$/)
+    if (field) fields[field[1]] = field[2].trim().replace(/^(["'])(.*)\1$/, "$2")
+  }
+  return { fields, body: markdown.slice(match?.[0].length ?? 0).trim() }
+}
+
+export default Plugin.define({
+  id: "git-helpers",
+  async setup(ctx) {
+    const dirs = (await readdir(skillsDir, { withFileTypes: true })).filter((entry) => entry.isDirectory())
+    const skills = await Promise.all(
+      dirs.map(async ({ name }) => {
+        const location = fileURLToPath(new URL(`${name}/SKILL.md`, skillsDir))
+        const { fields, body } = parseSkill(await readFile(location, "utf8"))
+        return Skill.Info.make({
+          id: Skill.ID.make(name),
+          name: Skill.Name.make(fields.name ?? name),
+          description: fields.description ?? "",
+          path: location as typeof ctx.location.directory,
+          content: body,
+        })
+      }),
+    )
+    await ctx.skill.transform((editor) => {
+      for (const skill of skills) editor.add(skill)
+    })
+  },
+})
+```
+
+Every skill-only plugin carries its own copy of this loader. That is deliberate: a shared package
+inside this repo isn't known to resolve when OpenCode installs a single subdirectory from git.
+
+### 6. Document it
+
+- Create `plugins/git-helpers/README.md` with what the plugin does, plus the install commands:
+
+  ````markdown
+  ## Install in Claude Code
+
+  ```text
+  /plugin marketplace add berk-karaal/agent-plugins
+  /plugin install git-helpers@berk-karaal
+  ```
+
+  ## Install in OpenCode V2
+
+  Requires OpenCode V2 2.0.15 or newer (earlier versions can't install from a repo subdirectory).
+
+  ```sh
+  opencode plugin add 'github:berk-karaal/agent-plugins#main::path:plugins/git-helpers'
+  ```
+  ````
+
+- Add a row to the plugin table in the root `README.md`.
+
+### 7. Install dependencies and run the checks
+
+```sh
+npm install          # registers the new workspace and updates package-lock.json
+npm run validate
+npm run typecheck
+npm test
+```
+
+Then test it in both clients (see [Testing locally](#testing-locally)) and commit, including
+`package-lock.json`.
+
+## Claude Code-only plugins
+
+Leave out `package.json` and `index.ts`, and add only the marketplace entry. Components you can
+ship:
+
+| Component | Location |
+|---|---|
+| Skills | `skills/<skill>/SKILL.md` |
+| Slash commands | `commands/<command>.md` |
+| Subagents | `agents/<agent>.md` |
+| Hooks | `hooks/hooks.json` |
+| MCP servers | `.mcp.json` |
+
+In hooks and MCP configs, refer to the plugin's own files through `${CLAUDE_PLUGIN_ROOT}`. For
+example:
+
+```json
+{ "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/sync.sh\"" }
+```
+
+`${CLAUDE_PLUGIN_ROOT}` changes on every update, so never write state there. Use
+`${CLAUDE_PLUGIN_DATA}` for anything that must survive an update.
+
+Mark scripts executable (`chmod +x`) before committing. Git keeps the mode.
+
+Reference: the [plugins reference](https://code.claude.com/docs/en/plugins/manifest-reference).
+
+## OpenCode V2-only plugins
+
+Leave out `.claude-plugin/` and don't add a marketplace entry. Besides
+`ctx.skill.transform`, the `setup(ctx)` function can use:
+
+- `ctx.command.transform(editor => editor.add({ name, description, execute }))` for slash commands
+- `ctx.tool.transform(...)` for custom tools
+- `ctx.tool.hook("execute.before" | "execute.after", ...)` for tool hooks
+- `ctx.session.hook(...)` for session hooks
+
+Reference: [OpenCode V2 plugin docs](https://opencode.ai/v2/docs/build/plugins).
+
+## Plugins with commands and hooks for both clients
+
+Write the Claude Code components (`commands/`, `hooks/hooks.json`), then have `index.ts`
+register the same behaviour for OpenCode from the same files. `plugins/task-tracker/index.ts` is
+the reference:
+
+- It reads each `commands/*.md`, strips the frontmatter, and registers it with
+  `ctx.command.transform`. It substitutes `$ARGUMENTS` the way Claude Code does.
+- It mirrors the Claude Code `PostToolUse` hook with `ctx.tool.hook("execute.after", ...)`, which
+  calls the same script under `scripts/`.
+
+Keep the Markdown files the single source of truth, so the two clients never drift.
+
+## Testing locally
+
+### Repo checks
+
+| Command | What it checks |
+|---|---|
+| `npm run validate` | `claude plugin validate` on the marketplace and on every plugin that has `.claude-plugin/plugin.json` |
+| `npm run typecheck` | `tsc --noEmit` over every `plugins/*/index.ts` |
+| `npm test` | each plugin's own `test` script, if it has one |
+
+`validate` always prints `No version specified` warnings. That is expected (see
+[Versioning](#versioning-and-releases)). The repo deliberately doesn't run validation with
+`--strict`.
+
+### Plugin tests
+
+Plugins with logic beyond the standard loader should ship tests. Add a `test` script to the
+plugin's `package.json` and put the tests in `test/`:
+
+```json
+"scripts": {
+  "test": "node --test test/*.test.mjs"
+}
+```
+
+- Tests run with Node 24's built-in TypeScript type stripping, so `node --test` can import
+  `../index.ts` directly. Use only erasable TypeScript syntax in `index.ts`: no `enum`, no
+  `namespace`, no constructor parameter properties.
+- Tests run with the plugin folder as the working directory. Resolve paths from the test
+  file's location, not from the current directory.
+- `plugins/task-tracker/test/` is the reference.
+
+### In Claude Code
+
+Load the plugin straight from the working tree, without installing it:
+
+```sh
+claude --plugin-dir plugins/<name>
+```
+
+Check that the skills and commands appear as `/<name>:...`. For a quick non-interactive check:
+
+```sh
+claude --plugin-dir plugins/<name> -p "…a prompt that should trigger the skill…"
+```
+
+### In OpenCode V2
+
+Point a throwaway project at the plugin folder. Use the absolute path, because relative paths
+resolve from the config file:
+
+```sh
+mkdir -p /tmp/oc-try && cd /tmp/oc-try && git init -q
+cat > opencode.jsonc <<EOF
+{ "plugins": ["$HOME/path/to/agent-plugins/plugins/<name>"] }
+EOF
+opencode --standalone
+```
+
+- `--standalone` starts a private server. Without it, OpenCode talks to the background service,
+  which keeps the plugins it loaded when it started. Restart that service with
+  `opencode service restart`.
+- For a non-interactive check:
+
+  ```sh
+  opencode run --standalone -m <provider/model> "…prompt that triggers the skill…"
+  ```
+
+  The output shows `→ Skill "<skill>"` when the skill loads.
+
+### The real install path
+
+After pushing, check the published install at least once for a new plugin:
+
+```sh
+opencode plugin add 'github:berk-karaal/agent-plugins#main::path:plugins/<name>'
+claude plugin marketplace update berk-karaal && claude plugin install <name>@berk-karaal
+```
+
+## Versioning and releases
+
+There are no versions and no release step. **Every push to `main` is a release.**
+
+- Claude Code derives the plugin version from the git commit. Users get changes with
+  `claude plugin marketplace update berk-karaal`, then `claude plugin update <name>@berk-karaal`,
+  or the same steps through `/plugin`. Auto-update is off by default for third-party
+  marketplaces.
+- OpenCode records the installed commit. Users get changes with `opencode plugin update`.
+
+So keep `main` working: run the checks before pushing, and let CI confirm.
+
+Don't add `version` to `plugin.json`, `package.json` or marketplace entries. With a pinned
+version, Claude Code stops delivering new commits until someone bumps it.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
+
+1. `npm ci`
+2. installs the Claude Code CLI (provides `claude plugin validate`, no login needed)
+3. `npm run validate`, `npm run typecheck`, `npm test`
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org), with the plugin name as the scope
+when a change touches one plugin:
+
+```
+feat(git-helpers): add commit-message skill
+fix(task-tracker): resolve linked task paths
+docs: update install instructions
+ci: pin Claude Code CLI
+```
+
+## Gotchas
+
+- **OpenCode V2 older than 2.0.15** can't install from a repo subdirectory (`::path:`).
+- **No `../` in Claude Code plugins.** Everything a plugin uses must live inside its folder.
+- **No `files` in a plugin's `package.json`.** It would strip skills and scripts from the
+  OpenCode install.
+- **The OpenCode background service caches plugins.** After changing a plugin, restart the
+  service or test with `--standalone`.
+- **Claude Code-only folders** (no `package.json`) are fine inside the npm workspaces glob.
+  npm skips them.
