@@ -3,6 +3,7 @@
 # Section A: static invariants of the plugin's command/skill docs.
 # Section B: live symlink + qmd + unlink mechanics in a temp sandbox.
 set -u
+command -v jq >/dev/null || { echo "jq required"; exit 1; }
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REPO="$(cd "$ROOT/../.." && pwd)"

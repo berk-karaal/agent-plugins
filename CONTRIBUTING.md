@@ -366,11 +366,17 @@ version, Claude Code stops delivering new commits until someone bumps it.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push to `main` and on every pull request:
+`.github/workflows/ci.yml` runs on the `ubuntu-slim` runner on every push to `main` and on every
+pull request:
 
 1. `npm ci`
-2. installs the Claude Code CLI (provides `claude plugin validate`, no login needed)
+2. installs a **pinned** Claude Code CLI. It provides `claude plugin validate`, and no login is
+   needed. Bump the version in `ci.yml` on purpose, and run `npm run validate` locally with the
+   new CLI first. A new CLI release can turn a warning into an error.
 3. `npm run validate`, `npm run typecheck`, `npm test`
+
+The smoke tests need `jq`. `ubuntu-slim` ships it, and locally the tests exit with `jq required`
+if it's missing.
 
 ## Commits
 
