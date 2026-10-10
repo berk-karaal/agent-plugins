@@ -322,7 +322,8 @@ source:
   changes in that repo itself.
 - The entry's `name` may differ from the external `plugin.json` name. Users install
   `<entry name>@berk-karaal`. That's how `claude-code-notification`, a name Claude Code now
-  reserves, is listed as `notification`.
+  reserves, is listed as `notification`. Skills and commands keep the namespace from the plugin's
+  own `plugin.json`, so its skill still runs as `/claude-code-notification:configure`.
 - Add a README row that links the external repo.
 
 ## Testing locally
