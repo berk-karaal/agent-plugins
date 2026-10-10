@@ -8,5 +8,6 @@
     "erasableSyntaxOnly": true,
     "types": ["node"]
   },
-  "include": ["plugins/*/index.ts"]
+  "include": ["plugins/*/index.ts"],
+  "exclude": ["plugins/opencode-notification"]
 }

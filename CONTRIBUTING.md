@@ -14,7 +14,8 @@ agent-plugins/
 ├─ .github/workflows/ci.yml          # all checks on push, PR and weekly
 ├─ scripts/                          # repo checks for OpenCode plugins (load + install)
 ├─ package.json                      # private dev root: npm workspaces over plugins/*
-├─ tsconfig.json                     # typechecks every plugins/*/index.ts
+├─ tsconfig.json                     # typechecks every plugins/*/index.ts (except Bun projects)
+├─ LICENSE                           # MIT, covers every plugin unless the plugin says otherwise
 └─ plugins/<name>/
    ├─ .claude-plugin/plugin.json     # Claude Code manifest
    ├─ skills/<skill>/SKILL.md        # skills, shared by both clients
@@ -48,7 +49,12 @@ client has and the other doesn't, such as Claude Code hooks or an OpenCode tool 
   - the folder name
   - `plugin.json` → `name`
   - the marketplace entry `name`
-- The OpenCode package name is `opencode-<name>`, and the `Plugin.define` `id` is `<name>`.
+- The OpenCode package name is `opencode-<name>`, or just `<name>` when the name already starts
+  with `opencode-` (`opencode-notification`). The `Plugin.define` `id` is `<name>`.
+- Claude Code reserves some plugin names, and `claude plugin validate` rejects them. A name must
+  not start with `claude-`, `anthropic-`, `anthropics-` or `cc-plugin-`. It also must not be
+  `claude`, `anthropic`, `anthropics`, `claude-code` or `claude-mods`, or pair `official` with
+  `claude` or `anthropic`. Name a plugin for what it does.
 - OpenCode commands are registered as `<name>:<command>`, one per `commands/<command>.md`,
   matching what Claude Code shows. `npm run validate` checks this.
 - The skill folder name must equal the skill's `name` frontmatter: `skills/commit-message/SKILL.md` → `name: commit-message`.
@@ -274,6 +280,51 @@ the reference:
 
 Keep the Markdown files the single source of truth, so the two clients never drift.
 
+## Bun-based OpenCode plugins
+
+A plugin can be its own Bun project, with its own `bun.lock`, `tsconfig.json`, test runner and
+linter. `plugins/opencode-notification/` is one. That suits plugins with a real code base, and
+OpenCode loads plugins with Bun anyway. Such a plugin:
+
+- keeps its own `check` script (for example `biome check . && tsc --noEmit && bun test`);
+- is excluded from the npm workspaces in the root `package.json`
+  (`"!plugins/<name>"` in `workspaces`), so npm never installs its dependencies;
+- is excluded from the root `tsconfig.json` (`exclude`), because it typechecks itself;
+- gets a job in `.github/workflows/ci.yml` that runs `bun install --frozen-lockfile` and
+  `bun run check` in its folder.
+
+The root `postinstall` runs `bun install --frozen-lockfile` in every plugin that has a `bun.lock`,
+so `npm install` at the root sets everything up.
+
+Add the workspace exclusion **before** running `bun install` in the plugin. Otherwise Bun treats
+the repo root as the workspace root and writes a `bun.lock` there.
+
+Bun projects may use TypeScript syntax that plain Node can't strip, such as constructor parameter
+properties. That's fine: the load check runs under Bun.
+
+## Plugins hosted in another repo
+
+A plugin that has its own release pipeline, such as a compiled binary with versioned GitHub
+Releases, can stay in its own repo and still be listed in this marketplace. Use a `git-subdir`
+source:
+
+```json
+{
+  "name": "notification",
+  "source": { "source": "git-subdir", "url": "berk-karaal/claude-code-notification", "path": "plugin" },
+  "description": "…"
+}
+```
+
+- Claude Code clones only that subdirectory at install time, and the plugin's own `plugin.json`
+  `version` decides when users get updates.
+- `npm run validate` checks the marketplace entry but doesn't fetch the external plugin, so test
+  changes in that repo itself.
+- The entry's `name` may differ from the external `plugin.json` name. Users install
+  `<entry name>@berk-karaal`. That's how `claude-code-notification`, a name Claude Code now
+  reserves, is listed as `notification`.
+- Add a README row that links the external repo.
+
 ## Testing locally
 
 ### Repo checks
@@ -281,9 +332,13 @@ Keep the Markdown files the single source of truth, so the two clients never dri
 | Command | What it checks |
 |---|---|
 | `npm run validate` | `claude plugin validate` on the marketplace and every Claude Code plugin, then the OpenCode load check |
-| `npm run typecheck` | `tsc --noEmit` over every `plugins/*/index.ts` |
-| `npm test` | each plugin's own `test` script, if it has one |
+| `npm run typecheck` | `tsc --noEmit` over every `plugins/*/index.ts`, except Bun projects |
+| `npm test` | each npm-workspace plugin's own `test` script, if it has one |
 | `npm run check:install` | the OpenCode install check (needs the `opencode` CLI, tests `HEAD`) |
+| `bun run check` in a Bun plugin's folder | that plugin's own lint, typecheck and tests |
+
+You need Node 24, [Bun](https://bun.sh), `jq`, and the Claude Code CLI. The install check also
+needs the OpenCode CLI.
 
 `validate` always prints `No version specified` warnings. That is expected (see
 [Versioning](#versioning-and-releases)). The repo deliberately doesn't run validation with
@@ -292,14 +347,21 @@ Keep the Markdown files the single source of truth, so the two clients never dri
 OpenCode has no validator of its own, so this repo has two checks for OpenCode plugins (every
 `plugins/*/` with a `package.json`):
 
-- **Load check** (`scripts/check-opencode.mjs`, part of `validate`) imports each `index.ts` and
-  runs `setup()` against a stand-in `ctx` that records what gets registered. It fails when:
-  - the default export isn't `Plugin.define({ id, setup })`, or `setup()` throws;
-  - the registered skills don't match the `skills/*/SKILL.md` folders, a skill's `path` doesn't
-    exist, or its content or description is empty;
-  - the registered commands don't match `commands/*.md` as `<id>:<command>`;
-  - `index.ts` imports a package that its own `package.json` doesn't list under `dependencies`.
-    The repo root's hoisted `node_modules` would otherwise hide this until a user installs.
+- **Load check** (`scripts/check-opencode.mjs`, part of `validate`) runs under Bun, the runtime
+  OpenCode itself uses. It imports each `index.ts` and runs `setup()` against a stand-in `ctx`
+  that records what gets registered.
+  - The stand-in provides `location` (`directory`, `project.canonical`) and an `event.subscribe`
+    stream that stays open until it's cancelled. Every other domain method is a harmless no-op.
+  - It fails when:
+    - the default export isn't `Plugin.define({ id, setup })`, or `setup()` throws;
+    - the cleanup function returned by `setup()` throws, or doesn't finish within 5 seconds (for
+      example, an event subscription that's never cancelled);
+    - the registered skills don't match the `skills/*/SKILL.md` folders, a skill's `path` doesn't
+      exist, or its content or description is empty;
+    - the registered commands don't match `commands/*.md` as `<id>:<command>`;
+    - any runtime source file (everything outside `test/` and `node_modules/`) imports a package
+      that the plugin's own `package.json` doesn't list under `dependencies`. The repo root's
+      hoisted `node_modules` would otherwise hide this until a user installs.
 
   It needs no model and no API key, and it gives the same result on every run. It can't see
   runtime behaviour such as what a command does or whether a hook fires. Cover that with plugin
@@ -396,12 +458,19 @@ version, Claude Code stops delivering new commits until someone bumps it.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on the `ubuntu-slim` runner on every push to `main`, on every
-pull request, and **weekly**, on Mondays at 06:00 UTC:
+`.github/workflows/ci.yml` runs on every push to `main`, on every pull request, and **weekly**, on
+Mondays at 06:00 UTC. It has two jobs.
 
-1. `npm ci`
-2. installs the **latest** Claude Code and OpenCode CLIs, and prints their versions
-3. `npm run validate`, `npm run typecheck`, `npm test`, `npm run check:install`
+The `check` job runs on `ubuntu-slim`:
+
+1. sets up Node 24 and the latest Bun, then runs `npm ci`. Its `postinstall` also installs the
+   Bun plugins.
+2. installs the **latest** Claude Code and OpenCode CLIs, and prints all tool versions.
+3. runs `npm run validate`, `npm run typecheck`, `npm test` and `npm run check:install`.
+
+The `opencode-notification` job runs that plugin's `bun run check` on Linux (`ubuntu-slim`) and
+macOS (`macos-latest`), with Bun pinned to 1.4.0, the plugin's declared minimum. Each new Bun
+plugin gets a job like it.
 
 The CLIs aren't pinned on purpose. Users run the latest versions, so CI does too. The weekly
 run catches a new CLI release that breaks a plugin even when nothing was pushed. If a run fails
@@ -432,3 +501,7 @@ ci: run checks weekly
   service or test with `--standalone`.
 - **Claude Code-only folders** (no `package.json`) are fine inside the npm workspaces glob.
   npm skips them.
+- **Reserved plugin names** (`claude-*` and others, see [Naming](#naming)) fail
+  `claude plugin validate`, even though installs still succeed today.
+- **Running `bun install` inside a plugin that isn't excluded from the npm workspaces** makes
+  Bun write a `bun.lock` at the repo root. Exclude the plugin first.

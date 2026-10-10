@@ -16,10 +16,27 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - uses: oven-sh/setup-bun@v2
       - run: npm ci
       - run: npm i -g @anthropic-ai/claude-code @opencode/cli
-      - run: claude --version && opencode --version
+      - run: claude --version && opencode --version && bun --version
       - run: npm run validate
       - run: npm run typecheck
       - run: npm test
       - run: npm run check:install
+
+  opencode-notification:
+    strategy:
+      matrix:
+        os: [ubuntu-slim, macos-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: plugins/opencode-notification
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+      - run: bun install --frozen-lockfile
+      - run: bun run check

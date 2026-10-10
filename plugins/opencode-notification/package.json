@@ -1,0 +1,37 @@
+{
+  "name": "opencode-notification",
+  "private": true,
+  "description": "Native OpenCode V2 notifications for completed work, errors, and input requests",
+  "type": "module",
+  "exports": "./index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "format": "biome format --write .",
+    "check": "biome check . && tsc --noEmit && bun test"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.15"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@types/bun": "1.4.2",
+    "@types/json-schema": "7.0.15",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/berk-karaal/agent-plugins.git",
+    "directory": "plugins/opencode-notification"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "notifications",
+    "ntfy"
+  ]
+}

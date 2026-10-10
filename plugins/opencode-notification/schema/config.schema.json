@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "opencode-notification configuration",
+  "description": "Configuration for the native OpenCode V2 notification plugin.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor validation"
+    },
+    "system_notification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false }
+      }
+    },
+    "ntfy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "topic": { "type": "string", "description": "Private ntfy topic" },
+        "server": { "type": "string", "format": "uri", "default": "https://ntfy.sh" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+          "then": { "required": ["topic"] }
+        }
+      ]
+    },
+    "sound": {
+      "$ref": "#/definitions/eventFiles"
+    },
+    "custom_script": {
+      "$ref": "#/definitions/eventFiles"
+    }
+  },
+  "definitions": {
+    "eventFiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "on_finished": { "type": "string" },
+        "on_needs_input": { "type": "string" },
+        "on_error": { "type": "string" }
+      }
+    }
+  }
+}
