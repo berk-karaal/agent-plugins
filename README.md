@@ -7,6 +7,7 @@ Berk Karaal's plugins for [Claude Code](https://code.claude.com) and [OpenCode V
 | [task-tracker](plugins/task-tracker) | Local-only persistent task tracking via `.tasks/` docs | ✓ | ✓ |
 | [notification](https://github.com/berk-karaal/claude-code-notification) | Notifications (ntfy, desktop, sound, scripts) when Claude finishes, fails or needs input. Hosted in its own repo | ✓ | – |
 | [opencode-notification](plugins/opencode-notification) | Notifications (ntfy, desktop, sound, scripts) when OpenCode finishes, fails or needs input | – | ✓ |
+| [wt-hub](plugins/wt-hub) | Clone or convert a repo into a Worktrunk-managed worktree hub (bare repo + one worktree per branch) | ✓ | ✓ |
 
 ## Claude Code
 

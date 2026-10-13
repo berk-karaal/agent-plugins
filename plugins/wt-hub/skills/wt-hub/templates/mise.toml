@@ -1,0 +1,24 @@
+# Worktree hub tasks and Worktrunk settings. Lives outside every branch; mise reads it
+# from the hub and from every worktree below it. Tasks run in the hub directory.
+
+[env]
+WORKTRUNK_WORKTREE_PATH = "{{config_root}}/{% raw %}{{ branch | sanitize }}{% endraw %}"
+WORKTRUNK_PROJECT_CONFIG_PATH = "{{config_root}}/wt.toml"
+
+[tasks."hub:add"]
+description = "Create a worktree for a branch from the fresh default branch: mise run hub:add fix/x"
+usage = 'arg "<branch>"'
+run = 'wt switch -c "${usage_branch}" --no-cd'
+
+[tasks."hub:rm"]
+description = "Remove a branch's worktree (deletes the branch only if it is merged): mise run hub:rm fix/x"
+usage = 'arg "<branch>"'
+run = 'wt remove "${usage_branch}"'
+
+[tasks."hub:ls"]
+description = "List the hub's worktrees"
+run = "wt list"
+
+[tasks."hub:trust"]
+description = "Re-trust the hub's and every worktree's mise config (after moving the hub)"
+run = 'mise trust -q mise.toml && for d in */; do [ -e "$d.git" ] && mise trust -q "$d"; done; true'

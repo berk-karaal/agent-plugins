@@ -16,6 +16,11 @@
         "path": "plugin"
       },
       "description": "Push notifications when Claude finishes a task, hits an error, or needs input"
+    },
+    {
+      "name": "wt-hub",
+      "source": "./plugins/wt-hub",
+      "description": "Clone or convert a repository into a Worktrunk-managed worktree hub"
     }
   ]
 }
