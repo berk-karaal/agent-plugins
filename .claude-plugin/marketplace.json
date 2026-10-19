@@ -21,6 +21,11 @@
       "name": "wt-hub",
       "source": "./plugins/wt-hub",
       "description": "Clone or convert a repository into a Worktrunk-managed worktree hub"
+    },
+    {
+      "name": "brk-pr",
+      "source": "./plugins/brk-pr",
+      "description": "GitHub PR workflow: /brk-pr:review-loop works through review feedback until the PR is mergeable"
     }
   ]
 }
