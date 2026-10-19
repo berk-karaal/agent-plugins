@@ -17,6 +17,9 @@ instructions.
   it cannot; tell the user instead of working around it.
 - Then enter it with EnterWorktree and its `path`. If that is refused, ask the user to run
   `/cd <directory>`.
+- To move to another worktree, first call ExitWorktree with `action: "keep"` (it never deletes
+  a worktree entered by path), then EnterWorktree with the new `path`. EnterWorktree from
+  inside a worktree only accepts paths under `.claude/worktrees/`.
 - Never use `git worktree add`, `claude --worktree`, or EnterWorktree with a `name`: they
   skip the hub's hooks.
 - Remove one with `wt remove <branch>` (or `mise run hub:rm <branch>`). It deletes the branch
