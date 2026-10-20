@@ -13,11 +13,13 @@ treat the task created here as the **active task** and auto-maintain its docs as
 
 ## Steps
 
-1. **Decide the task id.**
+1. **Decide the task id** yourself; do not ask the user to confirm it.
    - If an argument was given (`$ARGUMENTS`), use it as the basis.
    - If the work has a tracker key (e.g. `PROJ-1234`), id = `KEY-short-slug` (e.g. `PROJ-1234-add-auth`).
-   - Otherwise id = a kebab slug of the goal (e.g. `blog-redesign`).
-   - Propose the id to the user and confirm before creating anything.
+   - Otherwise id = a kebab slug of the goal (e.g. `blog-redesign`), formed once step 2 has
+     the goal.
+   - Ask only if nothing gives a basis for an id, or if `.tasks/<id>` already exists (never
+     overwrite it).
 
 2. **Gather the definition.** Ask the user for (or read from a pasted ticket): goal, why,
    in-scope, out-of-scope, acceptance criteria, constraints, links. Do not invent — ask
