@@ -30,6 +30,7 @@ All commands are namespaced under the plugin, so they never collide with other p
 | Command | What it does |
 |---|---|
 | `/task-tracker:init [id]` | Interview you for the task definition, scaffold `.tasks/<id>/`, gitignore `.tasks/`, add an INDEX row. |
+| `/task-tracker:explore [id]` | Explore the task before any code: learn the project and the why, compare approaches, ask you at two check-ins, then write `notes/<date>-exploration.md` and summarize it. Changes no code. |
 | `/task-tracker:update [id]` | Flush this session's work into the docs — dated `progress.md` bullets, detailed `notes/` files, INDEX bump. |
 | `/task-tracker:summary [id]` | **Read-only.** Print where the task stands AND prime the agent's context to resume. Writes nothing, so you can change direction. Use this on a fresh session to pick a task back up. |
 | `/task-tracker:list` | Show all tracked tasks and their status. |
@@ -38,6 +39,12 @@ All commands are namespaced under the plugin, so they never collide with other p
 
 While a task is active, the bundled `task-tracking` skill auto-maintains the docs as the
 agent works (concise dated bullets, detail spun out to `notes/`).
+
+## Personal exploration instructions
+
+`/task-tracker:explore` also reads every `TASK_EXPLORE.md` from the project directory up to `/`
+and appends them to its own instructions (deeper files win on conflict). Put one in `~/` for
+all projects, or in a folder above a group of projects, so it never has to live in a repo.
 
 ## What gets created (per project)
 
@@ -60,6 +67,7 @@ agent works (concise dated bullets, detail spun out to `notes/`).
 
 ```
 /task-tracker:init PROJ-1234        # define + scaffold the task
+/task-tracker:explore               # context, alternatives, agreed approach
 ...work; docs auto-update...
 /task-tracker:update                # flush progress before stopping
 # days later, fresh session:

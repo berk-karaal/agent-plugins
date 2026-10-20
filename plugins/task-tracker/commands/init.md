@@ -73,4 +73,7 @@ treat the task created here as the **active task** and auto-maintain its docs as
     ignored. Mention whether qmd indexing was set up for this task. State that this task
     is now the active task for the session.
 
+11. **Offer exploration:** suggest running `/task-tracker:explore` next, to learn the project,
+    compare approaches and agree on one before any code.
+
 Never `git add` or commit `.tasks/`.

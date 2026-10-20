@@ -6,6 +6,7 @@ import { Plugin, Skill } from "@opencode/plugin"
 
 const commands = [
   ["init", "Initialize a new tracked task"],
+  ["explore", "Explore a task before any code and write an exploration note"],
   ["update", "Flush this session's work into task docs"],
   ["summary", "Summarize a task and prime context to resume it"],
   ["list", "List all tracked tasks and their status"],
