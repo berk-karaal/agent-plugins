@@ -1,5 +1,5 @@
 {
   "name": "wt-hub",
-  "description": "Clone or convert a repository into a Worktrunk-managed worktree hub (bare repo, permanent default-branch worktree, one worktree per branch)",
+  "description": "Clone or convert a repository into a Worktrunk-managed worktree hub (bare repo, permanent default-branch worktree, one worktree per branch), and clean up merged or stale worktrees",
   "author": { "name": "Berk Karaal" }
 }

@@ -40,6 +40,18 @@ Ask the agent, for example: "clone git@github.com:org/repo.git as a worktree hub
 copy, which ports or database names to generate) and asks you to confirm them before writing
 anything.
 
+## Cleanup
+
+`/wt-hub:cleanup [--stale-days N]`, run from the hub:
+
+- removes, without asking, worktrees and local branches that are merged into the default
+  branch (`wt step prune`) or whose GitHub PR was merged with nothing added locally since;
+- asks about branches with a closed PR, a deleted remote branch, or no commits for N days
+  (default 30), showing any uncommitted or unpushed work that would be lost;
+- never deletes remote branches.
+
+PR checks need the `gh` CLI, logged in.
+
 ## Install in Claude Code
 
 ```text

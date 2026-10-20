@@ -20,7 +20,7 @@
     {
       "name": "wt-hub",
       "source": "./plugins/wt-hub",
-      "description": "Clone or convert a repository into a Worktrunk-managed worktree hub"
+      "description": "Clone or convert a repository into a Worktrunk-managed worktree hub, and clean up merged or stale worktrees"
     },
     {
       "name": "brk-pr",
