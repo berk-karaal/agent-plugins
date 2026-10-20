@@ -39,7 +39,8 @@ change, with STATUS one of `polling`, `fixing`, `NEED YOU`, `MERGEABLE`, `MERGED
    - Flag condition met: auto-merge (`MERGED`), or stop with `MERGEABLE` / `APPROVED` /
      `ROUND DONE`.
    - Stop with `NEED YOU` on failed checks, `DIRTY`, `BEHIND`, `BLOCKED` while approved with no
-     checks pending, or a failed merge: fixing CI or conflicts is not this skill's job.
+     checks pending, or a failed merge: fixing CI or conflicts is not this skill's job (for
+     `DIRTY`/`BEHIND`, suggest `/brk-pr:update-branch`).
    - Otherwise (including `UNSTABLE`/`BLOCKED` while checks are pending) go to 2.
 
 2. **Wait** (`polling`) for feedback from others newer than the PR's last commit; feedback that is

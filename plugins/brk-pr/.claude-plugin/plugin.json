@@ -1,5 +1,5 @@
 {
   "name": "brk-pr",
-  "description": "GitHub pull request workflow skills: /brk-pr:review-loop works through review feedback until the PR is mergeable",
+  "description": "GitHub pull request workflow skills: /brk-pr:review-loop works through review feedback until the PR is mergeable, /brk-pr:update-branch merges the base branch into the PR branch",
   "author": { "name": "Berk Karaal" }
 }

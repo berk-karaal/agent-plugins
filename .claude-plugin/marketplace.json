@@ -25,7 +25,7 @@
     {
       "name": "brk-pr",
       "source": "./plugins/brk-pr",
-      "description": "GitHub PR workflow: /brk-pr:review-loop works through review feedback until the PR is mergeable"
+      "description": "GitHub PR workflow: /brk-pr:review-loop works through review feedback until the PR is mergeable, /brk-pr:update-branch merges the base branch into the PR branch"
     }
   ]
 }

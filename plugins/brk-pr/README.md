@@ -29,6 +29,19 @@ Inside [herdr](https://herdr.dev), the tab name shows the current state after it
 
 Requires the `gh` CLI, logged in. herdr status also needs `jq`.
 
+## update-branch
+
+`/brk-pr:update-branch [PR]`
+
+Does what GitHub's "Update branch" button does: merges the PR's up-to-date base branch into the PR
+branch and pushes. Without a PR number it updates the checked-out branch's PR.
+
+- Uncommitted changes are stashed first and restored at the end.
+- Conflicts are resolved so both sides' changes survive, then the project's tests and linters run.
+- It tells you about structural changes in the base that affect the PR, and asks before pushing
+  when one needs your decision.
+- Merge only: it never rebases or force-pushes.
+
 ## Install in Claude Code
 
 ```text
