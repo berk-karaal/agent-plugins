@@ -31,10 +31,9 @@ Never copy the remote docs, and never modify anything in the remote folder durin
 3. **Prepare the local tasks dir:**
    ```bash
    mkdir -p .tasks
-   if [ -f .gitignore ]; then
-     grep -qxF '.tasks/' .gitignore || printf '\n# local-only task-tracker docs\n.tasks/\n' >> .gitignore
-   else
-     printf '# local-only task-tracker docs\n.tasks/\n' > .gitignore
+   if EXCLUDE=$(git rev-parse --git-path info/exclude 2>/dev/null); then
+     mkdir -p "$(dirname "$EXCLUDE")"
+     grep -qxF '.tasks/' "$EXCLUDE" 2>/dev/null || printf '\n# local-only task-tracker docs\n.tasks/\n' >> "$EXCLUDE"
    fi
    ```
 

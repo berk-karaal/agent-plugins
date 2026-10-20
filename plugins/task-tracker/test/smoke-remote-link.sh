@@ -32,7 +32,7 @@ check "link.md exists"                 "[ -f '$CMD/link.md' ]"
 check "link.md disables model invoke"  "grep -q '^disable-model-invocation: true$' '$CMD/link.md'"
 check "link.md has argument-hint"      "grep -q '^argument-hint:' '$CMD/link.md'"
 check "link.md creates a symlink"      "grep -q 'ln -s' '$CMD/link.md'"
-check "link.md gitignores .tasks/"     "grep -q '\.tasks/' '$CMD/link.md' && grep -q 'gitignore' '$CMD/link.md'"
+check "link.md excludes .tasks/"       "grep -q 'info/exclude' '$CMD/link.md' && ! grep -q '>> .gitignore' '$CMD/link.md'"
 check "link.md registers qmd coll."    "grep -q 'qmd collection add' '$CMD/link.md'"
 
 check "unlink.md exists"               "[ -f '$CMD/unlink.md' ]"

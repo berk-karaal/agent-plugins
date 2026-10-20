@@ -1,5 +1,5 @@
 ---
-description: Initialize a new tracked task — interview, scaffold .tasks/<id>/ docs, gitignore it, add an INDEX row
+description: Initialize a new tracked task — interview, scaffold .tasks/<id>/ docs, git-exclude it, add an INDEX row
 argument-hint: [task-id-or-ticket-key]
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, AskUserQuestion
@@ -37,12 +37,13 @@ treat the task created here as the **active task** and auto-maintain its docs as
    **Current status:** `in-progress` and a concrete **Next action**, then a first log line
    `- <timestamp> — Task created.`
 
-7. **Ensure `.tasks/` is git-ignored** (local-only — never pushed):
+7. **Ensure `.tasks/` is git-ignored** (local-only — never pushed) through the repository's
+   `info/exclude`, never `.gitignore`, so the repo shows no diff. `--git-path` finds the shared
+   file from any worktree; outside a git repository, skip this step.
    ```bash
-   if [ -f .gitignore ]; then
-     grep -qxF '.tasks/' .gitignore || printf '\n# local-only task-tracker docs\n.tasks/\n' >> .gitignore
-   else
-     printf '# local-only task-tracker docs\n.tasks/\n' > .gitignore
+   if EXCLUDE=$(git rev-parse --git-path info/exclude 2>/dev/null); then
+     mkdir -p "$(dirname "$EXCLUDE")"
+     grep -qxF '.tasks/' "$EXCLUDE" 2>/dev/null || printf '\n# local-only task-tracker docs\n.tasks/\n' >> "$EXCLUDE"
    fi
    ```
 

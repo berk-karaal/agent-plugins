@@ -29,7 +29,7 @@ All commands are namespaced under the plugin, so they never collide with other p
 
 | Command | What it does |
 |---|---|
-| `/task-tracker:init [id]` | Interview you for the task definition, scaffold `.tasks/<id>/`, gitignore `.tasks/`, add an INDEX row. |
+| `/task-tracker:init [id]` | Interview you for the task definition, scaffold `.tasks/<id>/`, ignore `.tasks/` via `.git/info/exclude` (no `.gitignore` change), add an INDEX row. |
 | `/task-tracker:explore [id]` | Explore the task before any code: learn the project and the why, compare approaches, ask you at two check-ins, then write `notes/<date>-exploration.md` and summarize it. Changes no code. |
 | `/task-tracker:update [id]` | Flush this session's work into the docs — dated `progress.md` bullets, detailed `notes/` files, INDEX bump. |
 | `/task-tracker:summary [id]` | **Read-only.** Print where the task stands AND prime the agent's context to resume. Writes nothing, so you can change direction. Use this on a fresh session to pick a task back up. |
