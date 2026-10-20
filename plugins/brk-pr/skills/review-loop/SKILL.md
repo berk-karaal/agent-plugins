@@ -36,6 +36,8 @@ change, with STATUS one of `polling`, `fixing`, `NEED YOU`, `MERGEABLE`, `MERGED
    gh pr view "$PR" --json mergeStateStatus,reviewDecision,latestReviews,statusCheckRollup --jq '[.statusCheckRollup[] | if .__typename == "CheckRun" then (if .status == "COMPLETED" then .conclusion else "PENDING" end) else .state end] as $c | {mergeStateStatus, reviewDecision, approvals: ([.latestReviews[] | select(.state == "APPROVED")] | length), checksFailed: any($c[]; IN("FAILURE","ERROR","TIMED_OUT","CANCELLED","ACTION_REQUIRED","STARTUP_FAILURE")), checksPending: any($c[]; IN("PENDING","EXPECTED"))}'
    ```
 
+   - Flag condition met, but feedback from others newer than the last commit that this run has
+     not handled yet (such as an approval with a nit): go to 3 first.
    - Flag condition met: auto-merge (`MERGED`), or stop with `MERGEABLE` / `APPROVED` /
      `ROUND DONE`.
    - Stop with `NEED YOU` on failed checks, `DIRTY`, `BEHIND`, `BLOCKED` while approved with no
@@ -65,6 +67,10 @@ change, with STATUS one of `polling`, `fixing`, `NEED YOU`, `MERGEABLE`, `MERGED
    - Agree but structural or significant (architecture, public API, data model, migration, new
      dependency, beyond the PR's scope, rewrites much of the diff): ask.
    - Unsure: ask.
+   - Valid nit (naming, wording, style, a small optional suggestion): never worth a push on its
+     own, since a push means another round of CI and review. Apply it only alongside other fixes
+     in the same round. If nits are all the round has, ask whether to apply them; if not, reply
+     that it is left as is to avoid another review round.
    - Invalid or a needless nit: decline with a short reason.
 
    Ask everything in one message with your recommendation for each, and set `NEED YOU` while
@@ -81,4 +87,5 @@ change, with STATUS one of `polling`, `fixing`, `NEED YOU`, `MERGEABLE`, `MERGED
    ```
 
 7. **Re-request** everyone who left feedback: `gh pr edit "$PR" --add-reviewer <login>` (bots by
-   their documented trigger comment). Back to 1.
+   their documented trigger comment). Skip this when the push holds only nits on an already
+   approved PR. Back to 1.

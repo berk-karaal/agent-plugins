@@ -12,8 +12,11 @@ Run after opening a PR. Each round, the skill:
 2. checks each comment against the code;
 3. fixes the comments it agrees with;
 4. asks you about unsure comments and structural or significant change requests, all in one message;
-5. declines invalid comments and needless nits with a reason;
-6. pushes, replies in each thread, resolves the fixed threads and re-requests review.
+5. applies valid nits only alongside other fixes; when nits are all that is left (say, an
+   approval with a small suggestion), it asks you instead of pushing and starting another
+   review round;
+6. declines invalid comments and needless nits with a reason;
+7. pushes, replies in each thread, resolves the fixed threads and re-requests review.
 
 By default it loops until GitHub reports the PR as mergeable. It stops and asks you when there
 are conflicts, the branch is behind its base, or CI is failing. It never deletes the branch.
