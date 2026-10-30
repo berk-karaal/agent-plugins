@@ -26,6 +26,11 @@
       "name": "brk-pr",
       "source": "./plugins/brk-pr",
       "description": "GitHub PR workflow: /brk-pr:review-loop works through review feedback until the PR is mergeable, /brk-pr:update-branch merges the base branch into the PR branch"
+    },
+    {
+      "name": "open-in-editor",
+      "source": "./plugins/open-in-editor",
+      "description": "Rows above the prompt for the last files Claude wrote or edited, with buttons to open each in Zed or VS Code"
     }
   ]
 }

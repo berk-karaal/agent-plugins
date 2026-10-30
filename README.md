@@ -9,6 +9,7 @@ Berk Karaal's plugins for [Claude Code](https://code.claude.com) and [OpenCode V
 | [opencode-notification](plugins/opencode-notification) | Notifications (ntfy, desktop, sound, scripts) when OpenCode finishes, fails or needs input | – | ✓ |
 | [wt-hub](plugins/wt-hub) | Clone or convert a repo into a Worktrunk-managed worktree hub (bare repo + one worktree per branch), and clean up merged or stale worktrees | ✓ | ✓ |
 | [brk-pr](plugins/brk-pr) | GitHub PR review loop: fixes, asks or declines each review comment, replies, re-requests review, optional auto-merge; update a PR branch from its base | ✓ | ✓ |
+| [open-in-editor](plugins/open-in-editor) | Rows above the prompt for the last files Claude wrote or edited, with buttons to open each in Zed or VS Code (macOS) | ✓ | – |
 
 ## Claude Code
 

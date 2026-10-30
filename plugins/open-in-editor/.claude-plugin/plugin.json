@@ -1,0 +1,6 @@
+{
+  "name": "open-in-editor",
+  "description": "Rows above the prompt for the last files Claude wrote or edited, with buttons to open each in Zed or VS Code",
+  "author": { "name": "Berk Karaal" },
+  "types": "./types/index.d.ts"
+}
