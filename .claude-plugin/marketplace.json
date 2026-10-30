@@ -30,7 +30,7 @@
     {
       "name": "open-in-editor",
       "source": "./plugins/open-in-editor",
-      "description": "Rows above the prompt for the last files Claude wrote or edited, with buttons to open each in Zed or VS Code"
+      "description": "Rows above the prompt for the last docs and code files Claude wrote or edited, with buttons to copy the path or open it in Zed, VS Code or the default app"
     }
   ]
 }
