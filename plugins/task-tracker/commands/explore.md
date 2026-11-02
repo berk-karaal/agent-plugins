@@ -1,7 +1,6 @@
 ---
 description: Explore a tracked task before any code — learn the project and the why, compare approaches with the user, write an exploration note and a summary
 argument-hint: [task-id]
-disable-model-invocation: true
 allowed-tools: Bash, Read, Glob, Grep, Write, Edit, AskUserQuestion, Agent, WebFetch, WebSearch
 ---
 
